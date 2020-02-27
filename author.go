@@ -39,13 +39,20 @@ func authorExtract(body *goquery.Selection) string {
 		}
 	}
 	for _, t := range text {
-		for _, v := range authorPattern {
-			ok, err := regexp.MatchString(v, t)
-			if err == nil && ok {
-				re, _ := regexp.Compile(v)
-				return re.ReplaceAllString(re.FindString(t), "$1")
-			}
+		if author, ok := matchAuthor(t); ok {
+			return author
 		}
 	}
 	return ""
+}
+
+func matchAuthor(text string) (string, bool) {
+	for _, v := range authorPattern {
+		ok, err := regexp.MatchString(v, text)
+		if err == nil && ok {
+			re, _ := regexp.Compile(v)
+			return re.ReplaceAllString(re.FindString(text), "$1"), true
+		}
+	}
+	return "", false
 }
