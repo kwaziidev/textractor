@@ -2,6 +2,7 @@ package textractor
 
 import (
 	"strings"
+	"sync"
 
 	"github.com/PuerkitoBio/goquery"
 )
@@ -39,23 +40,32 @@ func Extract(source string) (*Text, error) {
 	}
 	body := dom.Find("body")
 	normalize(body)
-	content := contentExtract(body)
-	publishTime := timeExtract(body)
-	author := authorExtract(body)
-	title := titleExtract(dom.Selection, content.node)
 	result := &Text{}
-	result.Content = content.density.tiText
-	result.ContentHTML, _ = content.node.Html()
-	var imgs []string
-	content.node.Find("img").Each(func(i int, s *goquery.Selection) {
-		if src, ok := s.Attr("src"); ok {
-			imgs = append(imgs, src)
-		}
-	})
-	result.Image = imgs
-	result.PublishTime = publishTime
-	result.Author = author
-	result.Title = title
+	wg := &sync.WaitGroup{}
+	wg.Add(3)
+	go func() {
+		result.PublishTime = timeExtract(body)
+		wg.Done()
+	}()
+	go func() {
+		result.Author = authorExtract(body)
+		wg.Done()
+	}()
+	go func() {
+		content := contentExtract(body)
+		result.Title = titleExtract(dom.Selection, content.node)
+		result.Content = content.density.tiText
+		result.ContentHTML, _ = content.node.Html()
+		var imgs []string
+		content.node.Find("img").Each(func(i int, s *goquery.Selection) {
+			if src, ok := s.Attr("src"); ok {
+				imgs = append(imgs, src)
+			}
+		})
+		result.Image = imgs
+		wg.Done()
+	}()
+	wg.Wait()
 	return result, nil
 }
 
