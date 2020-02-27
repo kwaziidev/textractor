@@ -25,6 +25,11 @@ var timePattern []string = []string{
 	`(\d{2}[-|/|.]\d{1,2}[-|/|.]\d{1,2}\s*?[0-1]?[0-9]:[0-5]?[0-9])`,
 	`(\d{2}[-|/|.]\d{1,2}[-|/|.]\d{1,2}\s*?[2][0-3]:[0-5]?[0-9])`,
 	`(\d{2}[-|/|.]\d{1,2}[-|/|.]\d{1,2}\s*?[1-24]\d时[0-60]\d分)([1-24]\d时)`,
+	`(\d{1,2}[-|/|.]\d{1,2}\s*?[0-1]?[0-9]:[0-5]?[0-9]:[0-5]?[0-9])`,
+	`(\d{1,2}[-|/|.]\d{1,2}\s*?[2][0-3]:[0-5]?[0-9]:[0-5]?[0-9])`,
+	`(\d{1,2}[-|/|.]\d{1,2}\s*?[0-1]?[0-9]:[0-5]?[0-9])`,
+	`(\d{1,2}[-|/|.]\d{1,2}\s*?[2][0-3]:[0-5]?[0-9])`,
+	`(\d{1,2}[-|/|.]\d{1,2}\s*?[1-24]\d时[0-60]\d分)([1-24]\d时)`,
 	`(\d{4}年\d{1,2}月\d{1,2}日\s*?[0-1]?[0-9]:[0-5]?[0-9]:[0-5]?[0-9])`,
 	`(\d{4}年\d{1,2}月\d{1,2}日\s*?[2][0-3]:[0-5]?[0-9]:[0-5]?[0-9])`,
 	`(\d{4}年\d{1,2}月\d{1,2}日\s*?[0-1]?[0-9]:[0-5]?[0-9])`,
@@ -42,6 +47,7 @@ var timePattern []string = []string{
 	`(\d{1,2}月\d{1,2}日\s*?[1-24]\d时[0-60]\d分)([1-24]\d时)`,
 	`(\d{4}[-|/|.]\d{1,2}[-|/|.]\d{1,2})`,
 	`(\d{2}[-|/|.]\d{1,2}[-|/|.]\d{1,2})`,
+	`(\d{1,2}[-|/|.]\d{1,2})`,
 	`(\d{4}年\d{1,2}月\d{1,2}日)`,
 	`(\d{2}年\d{1,2}月\d{1,2}日)`,
 	`(\d{1,2}月\d{1,2}日)`,
@@ -60,13 +66,20 @@ func timeExtract(body *goquery.Selection) string {
 		}
 	}
 	for _, t := range text {
-		for _, v := range timePattern {
-			ok, err := regexp.MatchString(v, t)
-			if err == nil && ok {
-				re, _ := regexp.Compile(v)
-				return re.FindString(t)
-			}
+		if timeVal, ok := matchTime(t); ok {
+			return timeVal
 		}
 	}
 	return ""
+}
+
+func matchTime(text string) (string, bool) {
+	for _, v := range timePattern {
+		ok, err := regexp.MatchString(v, text)
+		if err == nil && ok {
+			re, _ := regexp.Compile(v)
+			return re.FindString(text), true
+		}
+	}
+	return "", false
 }
