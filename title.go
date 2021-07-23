@@ -38,5 +38,8 @@ func findHtag(content *goquery.Selection) (string, bool) {
 	if htag.Length() > 0 {
 		return htag.Eq(0).Text(), true
 	}
+	if len(parent.Nodes) < 1 || parent.Nodes[0].Parent == nil {
+		return "", false
+	}
 	return findHtag(parent)
 }
