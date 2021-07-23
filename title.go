@@ -18,8 +18,8 @@ func titleExtract(source *goquery.Selection, content *goquery.Selection) string 
 	var title string
 	titleNode := source.Find("title")
 	if titleNode.Length() > 0 {
-		title = titleRx.Split(titleNode.Text(), -1)[0]
-		if strings.TrimSpace(title) != "" {
+		title = strings.TrimSpace(titleRx.Split(titleNode.Text(), -1)[0])
+		if title != "" {
 			return title
 		}
 	}
