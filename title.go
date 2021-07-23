@@ -7,6 +7,10 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
+var (
+	titleRx = regexp.MustCompile("-|_|\\|")
+)
+
 // titleExtract 提取文章作者
 // source 网页源码
 // content 正文
@@ -14,8 +18,7 @@ func titleExtract(source *goquery.Selection, content *goquery.Selection) string 
 	var title string
 	titleNode := source.Find("title")
 	if titleNode.Length() > 0 {
-		re, _ := regexp.Compile("-|_|\\|")
-		title = re.Split(titleNode.Text(), -1)[0]
+		title = titleRx.Split(titleNode.Text(), -1)[0]
 		if strings.TrimSpace(title) != "" {
 			return title
 		}

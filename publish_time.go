@@ -53,6 +53,19 @@ var timePattern []string = []string{
 	`(\d{1,2}月\d{1,2}日)`,
 }
 
+var timeRx []*regexp.Regexp
+
+func init() {
+
+	for _, v := range timePattern {
+		if rx, err := regexp.Compile(v); err != nil {
+			panic(err)
+		} else {
+			timeRx = append(timeRx, rx)
+		}
+	}
+}
+
 // Extract 提取发布时间
 func timeExtract(body *goquery.Selection) string {
 	var text []string
@@ -74,11 +87,9 @@ func timeExtract(body *goquery.Selection) string {
 }
 
 func matchTime(text string) (string, bool) {
-	for _, v := range timePattern {
-		ok, err := regexp.MatchString(v, text)
-		if err == nil && ok {
-			re, _ := regexp.Compile(v)
-			return re.FindString(text), true
+	for _, rx := range timeRx {
+		if rx.MatchString(text) {
+			return rx.FindString(text), true
 		}
 	}
 	return "", false
