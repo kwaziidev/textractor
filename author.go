@@ -2,18 +2,21 @@ package textractor
 
 import (
 	"regexp"
+	"sort"
 	"strings"
 	"unicode/utf8"
 
 	"github.com/PuerkitoBio/goquery"
 )
 
-const patternSuffix = `[：|:| |丨|/]\s*([\p{Han}]{2,5}|[\w]{2,20})`
+const patternSuffix = `[：|:| |丨|/]\s*([\p{Han}]{2,20}|[\w]{2,60})`
 
 var authorPattern = []string{
+	`author`,
 	`责编`,
 	`责任编辑`,
 	`作者`,
+	`记者`,
 	`编辑`,
 	`原创`,
 	`文`,
@@ -34,6 +37,10 @@ func init() {
 		panic(err)
 	}
 
+	sort.Slice(authorPattern, func(i, j int) bool {
+		return len(authorPattern[i]) > len(authorPattern[j])
+	})
+
 	for _, v := range authorPattern {
 		if rx, err := regexp.Compile(v + patternSuffix); err == nil {
 			authorPatternRx = append(authorPatternRx, rx)
@@ -42,7 +49,12 @@ func init() {
 }
 
 // authorExtract 提取文章作者
-func authorExtract(body *goquery.Selection) string {
+func authorExtract(headText []string, body *goquery.Selection) string {
+	for _, t := range headText {
+		if author, ok := matchAuthor(t); ok {
+			return author
+		}
+	}
 	var text []string
 	for _, v := range iterator(body) {
 		if goquery.NodeName(v) == "#text" {

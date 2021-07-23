@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	titleRx = regexp.MustCompile("-|_|\\|")
+	titleRx = regexp.MustCompile("_|\\|")
 )
 
 // titleExtract 提取文章作者

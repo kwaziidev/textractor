@@ -2,6 +2,7 @@ package textractor
 
 import (
 	"regexp"
+	"sort"
 	"strings"
 	"unicode/utf8"
 
@@ -67,22 +68,35 @@ func init() {
 }
 
 // Extract 提取发布时间
-func timeExtract(body *goquery.Selection) string {
-	var text []string
+func timeExtract(headText []string, body *goquery.Selection) string {
+
+	var mats []string
+
+	for _, t := range headText {
+		if timeVal, ok := matchTime(t); ok {
+			mats = append(mats, timeVal)
+		}
+	}
+
 	for _, v := range iterator(body) {
 		if goquery.NodeName(v) == "#text" {
 			t := strings.TrimSpace(v.Text())
 			length := utf8.RuneCountInString(t)
-			if t != "" && length >= 4 && length <= 25 {
-				text = append(text, t)
+			if t != "" && length >= 4 && length <= 50 {
+				if timeVal, ok := matchTime(t); ok {
+					mats = append(mats, timeVal)
+				}
 			}
 		}
 	}
-	for _, t := range text {
-		if timeVal, ok := matchTime(t); ok {
-			return timeVal
-		}
+
+	if len(mats) > 0 {
+		sort.Slice(mats, func(i, j int) bool {
+			return len(mats[i]) > len(mats[j])
+		})
+		return mats[0]
 	}
+
 	return ""
 }
 

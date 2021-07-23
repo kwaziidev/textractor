@@ -3,6 +3,7 @@ package textractor
 import (
 	"strings"
 	"sync"
+	"unicode/utf8"
 
 	"github.com/PuerkitoBio/goquery"
 )
@@ -41,14 +42,15 @@ func Extract(source string) (*Text, error) {
 	body := dom.Find("body")
 	normalize(body)
 	result := &Text{}
+	headText := headTextExtract(dom)
 	wg := &sync.WaitGroup{}
 	wg.Add(3)
 	go func() {
-		result.PublishTime = timeExtract(body)
+		result.PublishTime = timeExtract(headText, body)
 		wg.Done()
 	}()
 	go func() {
-		result.Author = authorExtract(body)
+		result.Author = authorExtract(headText, body)
 		wg.Done()
 	}()
 	go func() {
@@ -67,6 +69,44 @@ func Extract(source string) (*Text, error) {
 	}()
 	wg.Wait()
 	return result, nil
+}
+
+func headTextExtract(dom *goquery.Document) []string {
+	var (
+		rs       = []string{}
+		head     = dom.Find("head")
+		metaSkip = map[string]bool{
+			"charset":    true,
+			"http-equiv": true,
+		}
+	)
+	for _, v := range iterator(head) {
+		if goquery.NodeName(v) != "meta" {
+			continue
+		}
+		for _, v := range v.Nodes {
+			t := ""
+			for _, v2 := range v.Attr {
+				if metaSkip[v2.Key] {
+					t = ""
+					break
+				}
+				if v2.Key == "name" || v2.Key == "content" {
+					if t != "" {
+						t += " "
+					}
+					t += strings.ToLower(v2.Val)
+				}
+			}
+			if t != "" {
+				length := utf8.RuneCountInString(t)
+				if length >= 4 && length <= 50 {
+					rs = append(rs, t)
+				}
+			}
+		}
+	}
+	return rs
 }
 
 // normalize 初始化节点
