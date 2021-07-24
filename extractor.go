@@ -1,6 +1,7 @@
 package textractor
 
 import (
+	"sort"
 	"strings"
 	"sync"
 	"unicode/utf8"
@@ -31,6 +32,11 @@ type Text struct {
 	Content string `json:"content,omitempty"`
 	// ContentHTML 正文源码
 	ContentHTML string `json:"content_html,omitempty"`
+}
+
+type headEntry struct {
+	key string
+	val string
 }
 
 // Extract 提取信息
@@ -71,9 +77,9 @@ func Extract(source string) (*Text, error) {
 	return result, nil
 }
 
-func headTextExtract(dom *goquery.Document) map[string]string {
+func headTextExtract(dom *goquery.Document) []*headEntry {
 	var (
-		rs       = map[string]string{}
+		rs       = []*headEntry{}
 		head     = dom.Find("head")
 		metaSkip = map[string]bool{
 			"charset":    true,
@@ -101,11 +107,17 @@ func headTextExtract(dom *goquery.Document) map[string]string {
 			if key != "" && val != "" {
 				length := utf8.RuneCountInString(strings.TrimSpace(val))
 				if length >= 2 && length <= 50 {
-					rs[key] = val
+					rs = append(rs, &headEntry{
+						key: key,
+						val: val,
+					})
 				}
 			}
 		}
 	}
+	sort.Slice(rs, func(i, j int) bool {
+		return len(rs[i].key) > len(rs[j].key)
+	})
 	return rs
 }
 

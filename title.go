@@ -9,20 +9,25 @@ import (
 
 var (
 	titleRx = regexp.MustCompile("_|\\|")
+	titlePx = []string{
+		"articletitle",
+		":title",
+		"title",
+	}
 )
 
 // titleExtract 提取文章作者
 // source 网页源码
 // content 正文
-func titleExtract(headText map[string]string, source *goquery.Selection, content *goquery.Selection) string {
+func titleExtract(headText []*headEntry, source *goquery.Selection, content *goquery.Selection) string {
 	var title string
-	for k, v := range headText {
-		if !strings.Contains(k, "title") {
-			continue
-		}
-		title = strings.TrimSpace(titleRx.Split(v, -1)[0])
-		if title != "" {
-			return title
+	for _, v := range headText {
+		for _, px := range titlePx {
+			if strings.Contains(v.key, px) {
+				if title = strings.TrimSpace(titleRx.Split(v.val, -1)[0]); title != "" {
+					return title
+				}
+			}
 		}
 	}
 	titleNode := source.Find("title")
