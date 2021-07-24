@@ -55,7 +55,7 @@ func Extract(source string) (*Text, error) {
 	}()
 	go func() {
 		content := contentExtract(body)
-		result.Title = titleExtract(dom.Selection, content.node)
+		result.Title = titleExtract(headText, dom.Selection, content.node)
 		result.Content = content.density.tiText
 		result.ContentHTML, _ = content.node.Html()
 		var imgs []string
@@ -71,9 +71,9 @@ func Extract(source string) (*Text, error) {
 	return result, nil
 }
 
-func headTextExtract(dom *goquery.Document) []string {
+func headTextExtract(dom *goquery.Document) map[string]string {
 	var (
-		rs       = []string{}
+		rs       = map[string]string{}
 		head     = dom.Find("head")
 		metaSkip = map[string]bool{
 			"charset":    true,
@@ -85,23 +85,23 @@ func headTextExtract(dom *goquery.Document) []string {
 			continue
 		}
 		for _, v := range v.Nodes {
-			t := ""
+			key := ""
+			val := ""
 			for _, v2 := range v.Attr {
 				if metaSkip[v2.Key] {
-					t = ""
+					key = ""
 					break
 				}
-				if v2.Key == "name" || v2.Key == "content" {
-					if t != "" {
-						t += " "
-					}
-					t += strings.ToLower(v2.Val)
+				if v2.Key == "name" || v2.Key == "property" {
+					key = strings.ToLower(v2.Val)
+				} else if v2.Key == "content" {
+					val = v2.Val
 				}
 			}
-			if t != "" {
-				length := utf8.RuneCountInString(t)
-				if length >= 4 && length <= 50 {
-					rs = append(rs, t)
+			if key != "" && val != "" {
+				length := utf8.RuneCountInString(strings.TrimSpace(val))
+				if length >= 2 && length <= 50 {
+					rs[key] = val
 				}
 			}
 		}

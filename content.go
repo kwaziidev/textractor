@@ -99,7 +99,7 @@ var (
 func getAllTiText(s *goquery.Selection) []string {
 	var result []string
 	for _, v := range iterator(s) {
-		if v.Get(0).Type == html.TextNode {
+		if len(v.Nodes) > 0 && v.Get(0).Type == html.TextNode {
 			text := v.Text()
 			text = ctnRx1.ReplaceAllString(text, " ")
 			text = ctnRx2.ReplaceAllString(text, " ")

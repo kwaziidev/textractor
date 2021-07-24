@@ -29,6 +29,10 @@ var authorPattern = []string{
 	`来自`,
 }
 
+var headAuthorPattern = []string{
+	"author",
+}
+
 var authorPatternRx []*regexp.Regexp
 
 func init() {
@@ -49,10 +53,12 @@ func init() {
 }
 
 // authorExtract 提取文章作者
-func authorExtract(headText []string, body *goquery.Selection) string {
-	for _, t := range headText {
-		if author, ok := matchAuthor(t); ok {
-			return author
+func authorExtract(headText map[string]string, body *goquery.Selection) string {
+	for k, v := range headText {
+		for _, px := range headAuthorPattern {
+			if strings.Contains(k, px) {
+				return v
+			}
 		}
 	}
 	var text []string

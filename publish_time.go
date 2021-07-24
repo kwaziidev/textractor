@@ -15,7 +15,7 @@ type meta struct {
 	timeAttr string
 }
 
-var timePattern []string = []string{
+var timePattern = []string{
 	`(\d{4}[-|/|.]\d{1,2}[-|/|.]\d{1,2}\s*?[0-1]?[0-9]:[0-5]?[0-9]:[0-5]?[0-9])`,
 	`(\d{4}[-|/|.]\d{1,2}[-|/|.]\d{1,2}\s*?[2][0-3]:[0-5]?[0-9]:[0-5]?[0-9])`,
 	`(\d{4}[-|/|.]\d{1,2}[-|/|.]\d{1,2}\s*?[0-1]?[0-9]:[0-5]?[0-9])`,
@@ -68,12 +68,12 @@ func init() {
 }
 
 // Extract 提取发布时间
-func timeExtract(headText []string, body *goquery.Selection) string {
+func timeExtract(headText map[string]string, body *goquery.Selection) string {
 
 	var mats []string
 
-	for _, t := range headText {
-		if timeVal, ok := matchTime(t); ok {
+	for _, v := range headText {
+		if timeVal, ok := matchTime(v); ok {
 			mats = append(mats, timeVal)
 		}
 	}
