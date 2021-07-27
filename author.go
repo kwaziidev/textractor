@@ -2,32 +2,65 @@ package textractor
 
 import (
 	"regexp"
+	"sort"
 	"strings"
 	"unicode/utf8"
 
 	"github.com/PuerkitoBio/goquery"
 )
 
-const patternSuffix = `[：|:| |丨|/]\s*([\p{Han}]{2,5}|[\w]{2,20})`
+const patternSuffix = `[：|:| |丨|/]\s*([\p{Han}]{2,20}|[\w]{2,60})`
 
-var authorPattern []string = []string{
-	`责编` + patternSuffix,
-	`责任编辑` + patternSuffix,
-	`作者` + patternSuffix,
-	`编辑` + patternSuffix,
-	`原创` + patternSuffix,
-	`文` + patternSuffix,
-	`撰文` + patternSuffix,
-	`来源` + patternSuffix,
-	`稿件` + patternSuffix,
-	`发稿人` + patternSuffix,
-	`投稿人` + patternSuffix,
-	`投稿` + patternSuffix,
-	`来自` + patternSuffix,
+var authorPattern = []string{
+	`author`,
+	`责编`,
+	`责任编辑`,
+	`作者`,
+	`记者`,
+	`编辑`,
+	`原创`,
+	`文`,
+	`撰文`,
+	`来源`,
+	`稿件`,
+	`发稿人`,
+	`投稿人`,
+	`投稿`,
+	`来自`,
+}
+
+var headAuthorPattern = []string{
+	"author",
+}
+
+var authorPatternRx []*regexp.Regexp
+
+func init() {
+
+	if _, err := regexp.Compile(patternSuffix); err != nil {
+		panic(err)
+	}
+
+	sort.Slice(authorPattern, func(i, j int) bool {
+		return len(authorPattern[i]) > len(authorPattern[j])
+	})
+
+	for _, v := range authorPattern {
+		if rx, err := regexp.Compile(v + patternSuffix); err == nil {
+			authorPatternRx = append(authorPatternRx, rx)
+		}
+	}
 }
 
 // authorExtract 提取文章作者
-func authorExtract(body *goquery.Selection) string {
+func authorExtract(headText []*headEntry, body *goquery.Selection) string {
+	for _, v := range headText {
+		for _, px := range headAuthorPattern {
+			if strings.Contains(v.key, px) {
+				return v.val
+			}
+		}
+	}
 	var text []string
 	for _, v := range iterator(body) {
 		if goquery.NodeName(v) == "#text" {
@@ -47,11 +80,9 @@ func authorExtract(body *goquery.Selection) string {
 }
 
 func matchAuthor(text string) (string, bool) {
-	for _, v := range authorPattern {
-		ok, err := regexp.MatchString(v, text)
-		if err == nil && ok {
-			re, _ := regexp.Compile(v)
-			return re.ReplaceAllString(re.FindString(text), "$1"), true
+	for _, rx := range authorPatternRx {
+		if rx.MatchString(text) {
+			return rx.ReplaceAllString(rx.FindString(text), "$1"), true
 		}
 	}
 	return "", false

@@ -2,6 +2,7 @@ package textractor
 
 import (
 	"regexp"
+	"sort"
 	"strings"
 	"unicode/utf8"
 
@@ -14,7 +15,7 @@ type meta struct {
 	timeAttr string
 }
 
-var timePattern []string = []string{
+var timePattern = []string{
 	`(\d{4}[-|/|.]\d{1,2}[-|/|.]\d{1,2}\s*?[0-1]?[0-9]:[0-5]?[0-9]:[0-5]?[0-9])`,
 	`(\d{4}[-|/|.]\d{1,2}[-|/|.]\d{1,2}\s*?[2][0-3]:[0-5]?[0-9]:[0-5]?[0-9])`,
 	`(\d{4}[-|/|.]\d{1,2}[-|/|.]\d{1,2}\s*?[0-1]?[0-9]:[0-5]?[0-9])`,
@@ -53,32 +54,56 @@ var timePattern []string = []string{
 	`(\d{1,2}月\d{1,2}日)`,
 }
 
+var timeRx []*regexp.Regexp
+
+func init() {
+
+	for _, v := range timePattern {
+		if rx, err := regexp.Compile(v); err != nil {
+			panic(err)
+		} else {
+			timeRx = append(timeRx, rx)
+		}
+	}
+}
+
 // Extract 提取发布时间
-func timeExtract(body *goquery.Selection) string {
-	var text []string
+func timeExtract(headText []*headEntry, body *goquery.Selection) string {
+
+	var mats []string
+
+	for _, v := range headText {
+		if timeVal, ok := matchTime(v.val); ok {
+			mats = append(mats, timeVal)
+		}
+	}
+
 	for _, v := range iterator(body) {
 		if goquery.NodeName(v) == "#text" {
 			t := strings.TrimSpace(v.Text())
 			length := utf8.RuneCountInString(t)
-			if t != "" && length >= 4 && length <= 25 {
-				text = append(text, t)
+			if t != "" && length >= 4 && length <= 50 {
+				if timeVal, ok := matchTime(t); ok {
+					mats = append(mats, timeVal)
+				}
 			}
 		}
 	}
-	for _, t := range text {
-		if timeVal, ok := matchTime(t); ok {
-			return timeVal
-		}
+
+	if len(mats) > 0 {
+		sort.Slice(mats, func(i, j int) bool {
+			return len(mats[i]) > len(mats[j])
+		})
+		return mats[0]
 	}
+
 	return ""
 }
 
 func matchTime(text string) (string, bool) {
-	for _, v := range timePattern {
-		ok, err := regexp.MatchString(v, text)
-		if err == nil && ok {
-			re, _ := regexp.Compile(v)
-			return re.FindString(text), true
+	for _, rx := range timeRx {
+		if rx.MatchString(text) {
+			return rx.FindString(text), true
 		}
 	}
 	return "", false

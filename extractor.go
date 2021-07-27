@@ -1,8 +1,10 @@
 package textractor
 
 import (
+	"sort"
 	"strings"
 	"sync"
+	"unicode/utf8"
 
 	"github.com/PuerkitoBio/goquery"
 )
@@ -32,6 +34,11 @@ type Text struct {
 	ContentHTML string `json:"content_html,omitempty"`
 }
 
+type headEntry struct {
+	key string
+	val string
+}
+
 // Extract 提取信息
 func Extract(source string) (*Text, error) {
 	dom, err := goquery.NewDocumentFromReader(strings.NewReader(source))
@@ -41,19 +48,20 @@ func Extract(source string) (*Text, error) {
 	body := dom.Find("body")
 	normalize(body)
 	result := &Text{}
+	headText := headTextExtract(dom)
 	wg := &sync.WaitGroup{}
 	wg.Add(3)
 	go func() {
-		result.PublishTime = timeExtract(body)
+		result.PublishTime = timeExtract(headText, body)
 		wg.Done()
 	}()
 	go func() {
-		result.Author = authorExtract(body)
+		result.Author = authorExtract(headText, body)
 		wg.Done()
 	}()
 	go func() {
 		content := contentExtract(body)
-		result.Title = titleExtract(dom.Selection, content.node)
+		result.Title = titleExtract(headText, dom.Selection, content.node)
 		result.Content = content.density.tiText
 		result.ContentHTML, _ = content.node.Html()
 		var imgs []string
@@ -67,6 +75,50 @@ func Extract(source string) (*Text, error) {
 	}()
 	wg.Wait()
 	return result, nil
+}
+
+func headTextExtract(dom *goquery.Document) []*headEntry {
+	var (
+		rs       = []*headEntry{}
+		head     = dom.Find("head")
+		metaSkip = map[string]bool{
+			"charset":    true,
+			"http-equiv": true,
+		}
+	)
+	for _, v := range iterator(head) {
+		if goquery.NodeName(v) != "meta" {
+			continue
+		}
+		for _, v := range v.Nodes {
+			key := ""
+			val := ""
+			for _, v2 := range v.Attr {
+				if metaSkip[v2.Key] {
+					key = ""
+					break
+				}
+				if v2.Key == "name" || v2.Key == "property" {
+					key = strings.ToLower(v2.Val)
+				} else if v2.Key == "content" {
+					val = v2.Val
+				}
+			}
+			if key != "" && val != "" {
+				length := utf8.RuneCountInString(strings.TrimSpace(val))
+				if length >= 2 && length <= 50 {
+					rs = append(rs, &headEntry{
+						key: key,
+						val: val,
+					})
+				}
+			}
+		}
+	}
+	sort.Slice(rs, func(i, j int) bool {
+		return len(rs[i].key) > len(rs[j].key)
+	})
+	return rs
 }
 
 // normalize 初始化节点

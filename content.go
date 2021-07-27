@@ -91,13 +91,18 @@ func calcTextDensity(s *goquery.Selection) textDensity {
 	return result
 }
 
+var (
+	ctnRx1 = regexp.MustCompile(`/[\n\r]/g`)
+	ctnRx2 = regexp.MustCompile(`/\s{1,}/g`)
+)
+
 func getAllTiText(s *goquery.Selection) []string {
 	var result []string
 	for _, v := range iterator(s) {
-		if v.Get(0).Type == html.TextNode {
+		if len(v.Nodes) > 0 && v.Get(0).Type == html.TextNode {
 			text := v.Text()
-			text = regexp.MustCompile(`/[\n\r]/g`).ReplaceAllString(text, " ")
-			text = regexp.MustCompile(`/\s{1,}/g`).ReplaceAllString(text, " ")
+			text = ctnRx1.ReplaceAllString(text, " ")
+			text = ctnRx2.ReplaceAllString(text, " ")
 			text = strings.TrimSpace(text)
 			if len(text) > 0 {
 				result = append(result, text)
@@ -112,8 +117,8 @@ func getAllLtiText(s *goquery.Selection) []string {
 	for _, v := range iterator(s) {
 		if goquery.NodeName(s) == "a" {
 			text := v.Text()
-			text = regexp.MustCompile(`/[\n\r]/g`).ReplaceAllString(text, " ")
-			text = regexp.MustCompile(`/\s{1,}/g`).ReplaceAllString(text, " ")
+			text = ctnRx1.ReplaceAllString(text, " ")
+			text = ctnRx2.ReplaceAllString(text, " ")
 			text = strings.TrimSpace(text)
 			if len(text) > 0 {
 				result = append(result, text)
