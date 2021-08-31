@@ -1,4 +1,4 @@
-module github.com/eryx/textractor
+module github.com/gloomyzerg/textractor
 
 go 1.13
 
